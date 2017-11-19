@@ -95,6 +95,7 @@ void *nonThreadedMatMult(void* param){ /*A * B */
     if(A_c != B_r){
         fprintf(stderr,"incompatible matrix sizes\n");
         exit(0);
+
     }
     double ** B_T = transpose(B,B_r,B_c);
     for (int i = 0; i < A_r; ++i) {
