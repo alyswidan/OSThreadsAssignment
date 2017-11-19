@@ -5,9 +5,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <pthread.h>
+
 typedef struct MatMultParams{
     double** A;
     double** B;
+    double** C;
     int A_r,A_c,B_r,B_c;
 }MatMultParams_t;
 
@@ -15,13 +18,14 @@ typedef struct DotParams{
     double* a;
     double* b;
     int sz_a,sz_b;
+    double result;
 }DotParams_t;
 
 void *nonThreadedMatMult(void*);
 void *ThreadedMatMultPerElement(void*);
 void *ThreadMatMultPerRow(void*);
 double** initMatrix(int,int);
-double dot(double*, double*,int,int);
+void* dot(void *params);
 double **transpose(double**, int,int);
 void initRandomMat(double**,int,int,int);
 void printMat(double**,int,int,char*);
@@ -39,7 +43,15 @@ int main(){
     initRandomMat(B,B_r,B_c,limit);
     printMat(A,A_r,A_c,"A");
     printMat(B,B_r,B_c,"B");
-    nonThreadedMatMult(NULL);
+    MatMultParams_t* params = malloc(sizeof(MatMultParams_t));
+    params->A = A;
+    params->B = B;
+    params->C = C;
+    params->A_r = A_r;
+    params->B_r =B_r;
+    params->A_c = A_c;
+    params->B_c = B_c;
+    nonThreadedMatMult(params);
     printMat(C,C_r,C_c,"C");
 
 }
@@ -51,17 +63,18 @@ double** initMatrix(int r,int c){
     return X;
 }
 
-double dot(double *a, double *b,int sz_a,int sz_b){
-    if(sz_a != sz_b)
+void* dot(void *params){
+    DotParams_t *data = (DotParams_t*)params;
+    if(data->sz_a != data->sz_b)
     {
         fprintf(stderr,"incompatible sizes\n");
         exit(-1);
     }
     double result = 0;
-    for (int i = 0; i < sz_a; ++i) {
-        result += b[i] * a[i];
+    for (int i = 0; i < data->sz_a; ++i) {
+        result += data->b[i] * data->a[i];
     }
-    return result;
+    data->result = result;
 }
 
 double **transpose(double **X, int X_r,int X_c){
@@ -103,14 +116,21 @@ void  printVector(double* a,int size){
     printf("\n");
 }
 void *nonThreadedMatMult(void* param){ /*A * B */
-    if(A_c != B_r){
+    MatMultParams_t* data = (MatMultParams_t*)param;
+    if(data->A_c != data->B_r){
         fprintf(stderr,"incompatible matrix sizes\n");
         exit(0);
     }
-    double ** B_T = transpose(B,B_r,B_c);
+    DotParams_t* dotParams = (DotParams_t*)malloc(sizeof(struct DotParams));
+    double ** B_T = transpose(data->B,data->B_r,data->B_c);
     for (int i = 0; i < A_r; ++i) {
-        for (int j = 0; j < B_r; ++j) {
-            C[i][j] = dot(A[i],B_T[i],A_r,B_r);
+        for (int j = 0; j < B_c; ++j) {
+            dotParams->a = A[i];
+            dotParams->b = B_T[j];
+            dotParams->sz_a = A_c;
+            dotParams->sz_b = B_r;
+            dot((void*)dotParams);
+            C[i][j] = dotParams->result;
         }
     }
     return 0;
