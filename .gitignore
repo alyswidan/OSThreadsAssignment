@@ -1,5 +1,9 @@
 # Prerequisites
 *.d
+#clion 
+.idea
+Multiply
+cmake-build-debug/
 
 # Object files
 *.o
