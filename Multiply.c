@@ -5,6 +5,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+typedef struct MatMultParams{
+    double** A;
+    double** B;
+    int A_r,A_c,B_r,B_c;
+}MatMultParams_t;
+
+typedef struct DotParams{
+    double* a;
+    double* b;
+    int sz_a,sz_b;
+}DotParams_t;
 
 void *nonThreadedMatMult(void*);
 void *ThreadedMatMultPerElement(void*);
