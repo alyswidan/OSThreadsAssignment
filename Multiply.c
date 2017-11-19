@@ -86,6 +86,7 @@ void printMat(double** X,int r,int c,char* name){
 void  printVector(double* a,int size){
     for(int i =0;i<size;i++){
 
+
         printf("%lf ",a[i]);
 
     }
