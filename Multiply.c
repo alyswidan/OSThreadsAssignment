@@ -16,7 +16,9 @@ int main(){
     FILE *fp;
     char *Afile="./A-Matrix";
     char *Bfile="./B-Matrix";
-    char *Cfile="./C-Matrix";
+    char *CfileNonThreaded="./C-Matrix";
+    char *CfilePerElement="./C-MatrixPerElement";
+    char *CfilePerRow="./C-MatrixPerRow";
     C_r = A_r, C_c = B_c;
     A = initMatrix(A_r, A_c);
     B = initMatrix(B_r, B_c);
@@ -31,11 +33,12 @@ int main(){
     MatMultParams_t *params = (MatMultParams_t *) malloc(sizeof(MatMultParams_t));
     initMatMultParams(params,A,B,C,A_r,A_c,B_r,B_c);
     printf("non-threaded = %lf\n",benchmark(nonThreadedMatMult,params));
-    printMat(C,C_r,C_c,"C-nt");
-    printf("threaded by row = %lf\n",benchmark(ThreadMatMultPerRow,params));
-    printMat(C,C_r,C_c,"C-tr");
+    WriteFromFile(CfileNonThreaded,C,C_r,C_c);
     printf("threaded by element= %lf\n",benchmark(ThreadedMatMultPerElement,params));
-    printMat(C,C_r,C_c,"C-te");
+    WriteFromFile(CfilePerElement,C,C_r,C_c);
+    printf("threaded by row = %lf\n",benchmark(ThreadMatMultPerRow,params));
+    WriteFromFile(CfilePerRow,C,C_r,C_c);
+
 
 }
 
