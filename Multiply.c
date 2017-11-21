@@ -1,49 +1,39 @@
+//
+// Created by alyswidan on 19/11/17.
+//
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <pthread.h>
-#include <unistd.h>
-#include <stdbool.h>
 
-typedef struct MatMultParams {
-    double **A;
-    double **B;
-    double **C;
-    int A_r, A_c, B_r, B_c;
-} MatMultParams_t;
+typedef struct MatMultParams{
+    double** A;
+    double** B;
+    double** C;
+    int A_r,A_c,B_r,B_c;
+}MatMultParams_t;
 
-typedef struct DotParams {
-    double *a;
-    double *b;
-    int sz_a, sz_b;
-    double *result;
-} DotParams_t;
+typedef struct DotParams{
+    double* a;
+    double* b;
+    int sz_a,sz_b;
+    double result;
+}DotParams_t;
 
-void *nonThreadedMatMult(void *);
-
-void *ThreadedMatMultPerElement(void *);
-
-void *ThreadMatMultPerRow(void *);
-
-double **initMatrix(int, int);
-
-void *dot(void *params);
-
-
-double **transpose(double **, int, int);
-
-void initRandomMat(double **, int, int, int);
-
-void printMat(double **, int, int, char *);
-
-void printVector(double *, int);
-
-double **A, **B, **C;
-int A_r = 5, A_c = 5, B_r = 5, B_c = 5, C_r, C_c;
+double get_time();void *nonThreadedMatMult(void*);
+void *ThreadedMatMultPerElement(void*);
+void *ThreadMatMultPerRow(void*);
+double** initMatrix(int,int);
+void* dot(void *params);
+double **transpose(double**, int,int);
+void initRandomMat(double**,int,int,int);
+void printMat(double**,int,int,char*);
+void  printVector(double*,int);
+double **A,**B,**C;
+int A_r = 5,A_c=5,B_r=5,B_c=5,C_r,C_c;
 const int limit = 50;
-
-int main() {
+int main(){
 
     C_r = A_r, C_c = B_c;
     A = initMatrix(A_r, A_c);
@@ -58,7 +48,7 @@ int main() {
     params->B = B;
     params->C = C;
     params->A_r = A_r;
-    params->B_r = B_r;
+    params->B_r =B_r;
     params->A_c = A_c;
     params->B_c = B_c;
     ThreadMatMultPerRow(params);
@@ -71,7 +61,7 @@ int main() {
 double **initMatrix(int r, int c) {
     double **X = (double **) malloc(r * sizeof(double *));
     for (int i = 0; i < r; ++i) {
-        X[i] = (double *) malloc(c * sizeof(double));
+        X[i] = (double*)malloc(c * sizeof(double));
     }
     return X;
 }
@@ -87,13 +77,11 @@ void *dot(void *params) {
         result += data->b[i] * data->a[i];
     }
     *data->result = result;
-
     return 0;
 }
 
-
-double **transpose(double **X, int X_r, int X_c) {
-    double **T = initMatrix(X_c, X_r);
+double **transpose(double **X, int X_r,int X_c){
+    double **T = initMatrix(X_c,X_r);
 
     for (int i = 0; i < X_r; ++i) {
         for (int j = 0; j < X_c; ++j) {
@@ -102,22 +90,21 @@ double **transpose(double **X, int X_r, int X_c) {
     }
     return T;
 }
-
-void initRandomMat(double **X, int r, int c, int limit) {
+void initRandomMat(double** X,int r,int c,int limit){
     time_t seed;
     srand((unsigned) time(&seed));
-    for (int i = 0; i < r; ++i) {
+    for (int i = 0; i < r;++i) {
         for (int j = 0; j < c; ++j) {
             X[i][j] = rand() % limit;
         }
     }
 }
 
-void printMat(double **X, int r, int c, char *name) {
-    printf("%s = \n", name);
+void printMat(double** X,int r,int c,char* name){
+    printf("%s = \n",name);
     for (int i = 0; i < r; ++i) {
         for (int j = 0; j < c; ++j) {
-            printf("%.lf ", X[i][j]);
+            printf("%lf ",X[i][j]);
         }
         printf("\n");
     }
@@ -125,9 +112,7 @@ void printMat(double **X, int r, int c, char *name) {
 
 void printVector(double *a, int size) {
     for (int i = 0; i < size; i++) {
-
         printf("%lf ", a[i]);
-
     }
     printf("\n");
 }
@@ -138,7 +123,6 @@ void *nonThreadedMatMult(void *param) { /*A * B */
     if (data->A_c != data->B_r) {
         fprintf(stderr, "incompatible matrix sizes\n");
         exit(0);
-
     }
     DotParams_t *dotParams = (DotParams_t *) malloc(sizeof(DotParams_t));
     double **B_T = transpose(data->B, data->B_r, data->B_c);
@@ -150,7 +134,6 @@ void *nonThreadedMatMult(void *param) { /*A * B */
             dotParams->sz_b = data->B_r;
             dotParams->result = &(data->C[i][j]);
             dot((void *) dotParams);
-
 
         }
     }
@@ -191,6 +174,44 @@ void *ThreadMatMultPerRow(void *param) {
 
     }
     return 0;
+}
+
+void *ThreadedMatMultPerElement(void *params) {
+
+    MatMultParams_t *data = (MatMultParams_t *) params;
+    if (data->A_c != data->B_r) {
+        fprintf(stderr, "incompatible matrix sizes\n");
+        exit(0);
+    }
+    int C_r = data->A_r, C_c = data->B_c;
+
+
+    double **B_T = transpose(data->B, data->B_r, data->B_c);
+
+    pthread_t *threads = (pthread_t *) malloc(C_r * C_c * sizeof(pthread_t));
+
+    for (int i = 0; i < data->A_r; ++i) {
+        for (int j = 0; j < data->B_c; ++j) {
+            DotParams_t *dotParams = (DotParams_t *) malloc(sizeof(struct DotParams));
+            dotParams->a = data->A[i];
+            dotParams->b = B_T[j];
+            dotParams->sz_a = data->A_c;
+            dotParams->sz_b = data->B_r;
+            dotParams->result = &(data->C[i][j]);
+            pthread_create(&threads[j + data->B_c * i], NULL, dot, dotParams);
+        }
+    }
+    for (int i = 0; i < C_r * C_c; ++i) {
+        pthread_join(threads[i], NULL);
+    }
+    return 0;
+}
+
+double get_time() {
+    struct timeval t;
+    struct timezone tzp;
+    gettimeofday(&t, &tzp);
+    return t.tv_sec + t.tv_usec * 1e-6;
 }
 
 
