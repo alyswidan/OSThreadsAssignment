@@ -36,12 +36,40 @@ int A_r = 5,A_c=5,B_r=5,B_c=5,C_r,C_c;
 const int limit = 50;
 int main(){
 
+    char *str;
+    char *ptr,*ptr1;
+    double ret;
     C_r = A_r, C_c = B_c;
     A = initMatrix(A_r, A_c);
     B = initMatrix(B_r, B_c);
     C = initMatrix(C_r, C_c);
-    initRandomMat(A, A_r, A_c, limit);
-    initRandomMat(B, B_r, B_c, limit);
+    FILE *fp;
+    fp = fopen("./A-Matrix", "r");
+    fscanf(fp, "%d %d", &A_r ,&A_c);
+
+
+    for(int i=0;i< A_r;i++){
+        for(int j=0 ;j<A_c;j++){
+
+            fscanf(fp, "%lf ",&A[i][j]);
+
+        }
+    }
+    fp = fopen("./B-Matrix", "r");
+    fscanf(fp, "%d %d", &B_r ,&B_c);
+
+    for(int i=0;i< B_r;i++){
+        for(int j=0 ;j<B_c;j++){
+
+            fscanf(fp, "%lf ", &B[i][j]);
+
+        }
+    }
+
+
+
+    //initRandomMat(A, A_r, A_c, limit);
+   // initRandomMat(B, B_r, B_c, limit);
     printMat(A, A_r, A_c, "A");
     printMat(B, B_r, B_c, "B");
     MatMultParams_t *params = (MatMultParams_t *) malloc(sizeof(MatMultParams_t));
@@ -58,6 +86,19 @@ int main(){
     printMat(C, C_r, C_c, "C_nt");
     ThreadedMatMultPerElement(params);
     printMat(C, C_r, C_c, "C_pe");
+
+    fp = fopen("./C-Matrix", "w+");
+
+    for(int i=0;i< C_r;i++){
+        for(int j=0 ;j<C_c;j++){
+
+            fprintf(fp, "%lf ",C[i][j]);
+
+        }
+        fprintf(fp, "\n");
+    }
+
+    fclose(fp);
 
 }
 
