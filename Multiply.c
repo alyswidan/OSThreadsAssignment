@@ -7,33 +7,8 @@
 #include <time.h>
 #include <pthread.h>
 #include <sys/time.h>
-
-typedef struct MatMultParams{
-    double** A;
-    double** B;
-    double** C;
-    int A_r,A_c,B_r,B_c;
-}MatMultParams_t;
-
-typedef struct DotParams{
-    double* a;
-    double* b;
-    int sz_a,sz_b;
-    double *result;
-}DotParams_t;
-
-double get_time();void *nonThreadedMatMult(void*);
-void *ThreadedMatMultPerElement(void*);
-void *ThreadMatMultPerRow(void*);
-double** initMatrix(int,int);
-void* dot(void *params);
-double **transpose(double**, int,int);
-void initRandomMat(double**,int,int,int);
-void printMat(double**,int,int,char*);
-void  printVector(double*,int);
+#include "Multiply.h"
 double **A,**B,**C;
-void ReadFromFile(char* s,double** matrix,int* n, int* m);
-void WriteFromFile(char* s,double** matrix,int n, int m);
 int A_r = 5,A_c=5,B_r=5,B_c=5,C_r,C_c;
 const int limit = 50;
 int main(){
@@ -54,23 +29,13 @@ int main(){
     printMat(A, A_r, A_c, "A");
     printMat(B, B_r, B_c, "B");
     MatMultParams_t *params = (MatMultParams_t *) malloc(sizeof(MatMultParams_t));
-    params->A = A;
-    params->B = B;
-    params->C = C;
-    params->A_r = A_r;
-    params->B_r =B_r;
-    params->A_c = A_c;
-    params->B_c = B_c;
-    ThreadMatMultPerRow(params);
-  //  printMat(C, C_r, C_c, "C_pr");
-    nonThreadedMatMult(params);
-  //  printMat(C, C_r, C_c, "C_nt");
-    ThreadedMatMultPerElement(params);
-    //printMat(C, C_r, C_c, "C_pe");
-     WriteFromFile(Cfile,C,C_r,C_c);
-
-
-
+    initMatMultParams(params,A,B,C,A_r,A_c,B_r,B_c);
+    printf("non-threaded = %lf\n",benchmark(nonThreadedMatMult,params));
+    printMat(C,C_r,C_c,"C-nt");
+    printf("threaded by row = %lf\n",benchmark(ThreadMatMultPerRow,params));
+    printMat(C,C_r,C_c,"C-tr");
+    printf("threaded by element= %lf\n",benchmark(ThreadedMatMultPerElement,params));
+    printMat(C,C_r,C_c,"C-te");
 
 }
 
@@ -176,11 +141,7 @@ void *nonThreadedMatMult(void *param) { /*A * B */
     double **B_T = transpose(data->B, data->B_r, data->B_c);
     for (int i = 0; i < data->A_r; ++i) {
         for (int j = 0; j < data->B_c; ++j) {
-            dotParams->a = data->A[i];
-            dotParams->b = B_T[j];
-            dotParams->sz_a = data->A_c;
-            dotParams->sz_b = data->B_r;
-            dotParams->result = &(data->C[i][j]);
+            initDotParams(dotParams,data->A[i],B_T[j],data->A_c,data->B_r,&(data->C[i][j]));
             dot((void *) dotParams);
 
         }
@@ -200,18 +161,7 @@ void *ThreadMatMultPerRow(void *param) {
         double **newA = initMatrix(1, data->A_c);
         double **newC = initMatrix(1, data->B_c);
         MatMultParams_t *newdata = (MatMultParams_t *) malloc(sizeof(MatMultParams_t));
-        newdata->A = newdata1->A;
-        newdata->A_r = newdata1->A_r;
-        newdata->A_c = newdata1->A_c;
-        newdata->B = newdata1->B;
-        newdata->B_c = newdata1->B_c;
-        newdata->B_r = newdata1->B_r;
-        newdata->C = newdata1->C;
-        newA[0] = data->A[i];
-        newC[0] = data->C[i];
-        newdata->A_r = 1;
-        newdata->A = newA;
-        newdata->C = newC;
+        initMatMultParams(newdata,newA,newdata1->B,newC,1,newdata1->A_c,newdata1->B_r,newdata1->B_c);
         pthread_create(&threads[i], NULL, nonThreadedMatMult, newdata);
 
     }
@@ -240,14 +190,9 @@ void *ThreadedMatMultPerElement(void *params) {
     for (int i = 0; i < data->A_r; ++i) {
         for (int j = 0; j < data->B_c; ++j) {
             DotParams_t *dotParams = (DotParams_t *) malloc(sizeof(struct DotParams));
-            dotParams->a = data->A[i];
-            dotParams->b = B_T[j];
-            dotParams->sz_a = data->A_c;
-            dotParams->sz_b = data->B_r;
-            dotParams->result = &(data->C[i][j]);
+            initDotParams(dotParams,data->A[i],B_T[j],data->A_c,data->B_r,&(data->C[i][j]));
             pthread_create(&threads[j + data->B_c * i], NULL, dot, dotParams);
         }
-
     }
     for (int i = 0; i < C_r * C_c; ++i) {
         pthread_join(threads[i], NULL);
@@ -260,6 +205,35 @@ double get_time() {
     struct timezone tzp;
     gettimeofday(&t, &tzp);
     return t.tv_sec + t.tv_usec * 1e-6;
+}
+
+double benchmark(matmult fun,void*params){
+    double start = get_time();
+    fun(params);
+    double end = get_time();
+    return end-start;
+}
+
+void initDotParams(DotParams_t*params,double* a,double* b,
+                   int sz_a,int sz_b,
+                   double *result){
+    params->a = a;
+    params->b = b;
+    params->sz_a = sz_a;
+    params->sz_b = sz_b;
+    params->result = result;
+}
+void initMatMultParams(MatMultParams_t*params,
+                       double** A, double** B, double** C,
+                       int A_r,int A_c,int B_r,int B_c){
+
+    params->A = A;
+    params->B = B;
+    params->C = C;
+    params->A_r = A_r;
+    params->A_c = A_c;
+    params->B_r = B_r;
+    params->B_c = B_c;
 }
 
 
