@@ -32,41 +32,22 @@ void initRandomMat(double**,int,int,int);
 void printMat(double**,int,int,char*);
 void  printVector(double*,int);
 double **A,**B,**C;
+void ReadFromFile(char* s,double** matrix,int* n, int* m);
+void WriteFromFile(char* s,double** matrix,int n, int m);
 int A_r = 5,A_c=5,B_r=5,B_c=5,C_r,C_c;
 const int limit = 50;
 int main(){
 
-    char *str;
-    char *ptr,*ptr1;
-    double ret;
+    FILE *fp;
+    char *Afile="./A-Matrix";
+    char *Bfile="./B-Matrix";
+    char *Cfile="./C-Matrix";
     C_r = A_r, C_c = B_c;
     A = initMatrix(A_r, A_c);
     B = initMatrix(B_r, B_c);
     C = initMatrix(C_r, C_c);
-    FILE *fp;
-    fp = fopen("./A-Matrix", "r");
-    fscanf(fp, "%d %d", &A_r ,&A_c);
-
-
-    for(int i=0;i< A_r;i++){
-        for(int j=0 ;j<A_c;j++){
-
-            fscanf(fp, "%lf ",&A[i][j]);
-
-        }
-    }
-    fp = fopen("./B-Matrix", "r");
-    fscanf(fp, "%d %d", &B_r ,&B_c);
-
-    for(int i=0;i< B_r;i++){
-        for(int j=0 ;j<B_c;j++){
-
-            fscanf(fp, "%lf ", &B[i][j]);
-
-        }
-    }
-
-
+    ReadFromFile(Afile,A,&A_r,&A_c);
+    ReadFromFile(Bfile,B,&B_r,&B_c);
 
     //initRandomMat(A, A_r, A_c, limit);
    // initRandomMat(B, B_r, B_c, limit);
@@ -81,24 +62,15 @@ int main(){
     params->A_c = A_c;
     params->B_c = B_c;
     ThreadMatMultPerRow(params);
-    printMat(C, C_r, C_c, "C_pr");
+  //  printMat(C, C_r, C_c, "C_pr");
     nonThreadedMatMult(params);
-    printMat(C, C_r, C_c, "C_nt");
+  //  printMat(C, C_r, C_c, "C_nt");
     ThreadedMatMultPerElement(params);
-    printMat(C, C_r, C_c, "C_pe");
+    //printMat(C, C_r, C_c, "C_pe");
+     WriteFromFile(Cfile,C,C_r,C_c);
 
-    fp = fopen("./C-Matrix", "w+");
 
-    for(int i=0;i< C_r;i++){
-        for(int j=0 ;j<C_c;j++){
 
-            fprintf(fp, "%lf ",C[i][j]);
-
-        }
-        fprintf(fp, "\n");
-    }
-
-    fclose(fp);
 
 }
 
@@ -109,7 +81,39 @@ double **initMatrix(int r, int c) {
     }
     return X;
 }
+void ReadFromFile(char* s,double** matrix,int* n, int* m){
+    FILE *fp;
+    fp = fopen(s, "r");
+    fscanf(fp, "%d %d", n ,m);
 
+
+    for(int i=0;i< *n;i++){
+        for(int j=0 ;j<*m;j++){
+
+            fscanf(fp, "%lf ",&matrix[i][j]);
+
+        }
+    }
+
+}
+void WriteFromFile(char* s,double** matrix,int n, int m){
+
+    FILE *fp;
+    fp = fopen(s, "w+");
+    fscanf(fp, "%d %d", n ,m);
+
+    fprintf(fp, " ");
+    for(int i=0;i< n;i++){
+        for(int j=0 ;j<m;j++){
+
+            fprintf(fp, "%lf ",matrix[i][j]);
+
+        }
+        fprintf(fp, "\n ");
+    }
+    fclose(fp);
+
+}
 void *dot(void *params) {
     DotParams_t *data = (DotParams_t *) params;
     if (data->sz_a != data->sz_b) {
