@@ -6,6 +6,7 @@
 #include <string.h>
 #include <time.h>
 #include <pthread.h>
+#include <sys/time.h>
 
 typedef struct MatMultParams{
     double** A;
@@ -18,7 +19,7 @@ typedef struct DotParams{
     double* a;
     double* b;
     int sz_a,sz_b;
-    double result;
+    double *result;
 }DotParams_t;
 
 double get_time();void *nonThreadedMatMult(void*);
@@ -52,9 +53,11 @@ int main(){
     params->A_c = A_c;
     params->B_c = B_c;
     ThreadMatMultPerRow(params);
-    printMat(C, C_r, C_c, "C");
+    printMat(C, C_r, C_c, "C_pr");
     nonThreadedMatMult(params);
-    printMat(C, C_r, C_c, "C new");
+    printMat(C, C_r, C_c, "C_nt");
+    ThreadedMatMultPerElement(params);
+    printMat(C, C_r, C_c, "C_pe");
 
 }
 
@@ -159,7 +162,6 @@ void *ThreadMatMultPerRow(void *param) {
         newdata->B_c = newdata1->B_c;
         newdata->B_r = newdata1->B_r;
         newdata->C = newdata1->C;
-        printf(" A_r %d i:%d /n  ", data->A_r, i);
         newA[0] = data->A[i];
         newC[0] = data->C[i];
         newdata->A_r = 1;
