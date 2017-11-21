@@ -123,20 +123,8 @@ void *ThreadMatMultPerRow(void *param) {
         double **newA = initMatrix(1, data->A_c);
         double **newC = initMatrix(1, data->B_c);
         MatMultParams_t *newdata = (MatMultParams_t *) malloc(sizeof(MatMultParams_t));
-        newdata->A = newdata1->A;
-        newdata->A_r = newdata1->A_r;
-        newdata->A_c = newdata1->A_c;
-        newdata->B = newdata1->B;
-        newdata->B_c = newdata1->B_c;
-        newdata->B_r = newdata1->B_r;
-        newdata->C = newdata1->C;
-        newA[0] = data->A[i];
-        newC[0] = data->C[i];
-        newdata->A_r = 1;
-        newdata->A = newA;
-        newdata->C = newC;
+        initMatMultParams(newdata,newA,newdata1->B,newC,1,newdata1->A_c,newdata1->B_r,newdata1->B_c);
         pthread_create(&threads[i], NULL, nonThreadedMatMult, newdata);
-
     }
 
     for (int i = 0; i < data->A_r; i++) {
