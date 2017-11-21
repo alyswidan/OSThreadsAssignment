@@ -36,6 +36,7 @@ int A_r = 5,A_c=5,B_r=5,B_c=5,C_r,C_c;
 const int limit = 50;
 int main(){
 
+
     C_r = A_r, C_c = B_c;
     A = initMatrix(A_r, A_c);
     B = initMatrix(B_r, B_c);
