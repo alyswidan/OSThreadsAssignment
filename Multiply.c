@@ -202,6 +202,7 @@ void *ThreadedMatMultPerElement(void *params) {
             dotParams->result = &(data->C[i][j]);
             pthread_create(&threads[j + data->B_c * i], NULL, dot, dotParams);
         }
+
     }
     for (int i = 0; i < C_r * C_c; ++i) {
         pthread_join(threads[i], NULL);
