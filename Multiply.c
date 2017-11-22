@@ -141,10 +141,10 @@ void *nonThreadedMatMult(void *param) { /*A * B */
         exit(0);
     }
     DotParams_t *dotParams = (DotParams_t *) malloc(sizeof(DotParams_t));
-    double **B_T = transpose(data->B, data->B_r, data->B_c);
+
     for (int i = 0; i < data->A_r; ++i) {
-        for (int j = 0; j < data->B_c; ++j) {
-            initDotParams(dotParams,data->A[i],B_T[j],data->A_c,data->B_r,&(data->C[i][j]));
+        for (int j = 0; j < data->B_r; ++j) {
+            initDotParams(dotParams,data->A[i],data->B[j],data->A_c,data->B_c,&(data->C[i][j]));
             dot((void *) dotParams);
 
         }
@@ -159,12 +159,13 @@ void *ThreadMatMultPerRow(void *param) {
     pthread_t *threads = (pthread_t *) malloc(data->A_r * sizeof(pthread_t));
     MatMultParams_t *newdata1 = (MatMultParams_t *) malloc(sizeof(MatMultParams_t));
     memcpy(newdata1, data, sizeof(MatMultParams_t));
-
+    double **B_T = transpose(data->B, data->B_r, data->B_c);
+    int B_T_r = B_c,B_T_c = B_r;
     for (int i = 0; i < data->A_r; i++) {
         double **newA = initMatrix(1, data->A_c);
-        double **newC = initMatrix(1, data->B_c);
+        double **newC = initMatrix(1, B_T_r);
         MatMultParams_t *newdata = (MatMultParams_t *) malloc(sizeof(MatMultParams_t));
-        initMatMultParams(newdata,newA,newdata1->B,newC,1,newdata1->A_c,newdata1->B_r,newdata1->B_c);
+        initMatMultParams(newdata,newA,B_T,newC,1,newdata1->A_c,B_T_r,B_T_c);
         pthread_create(&threads[i], NULL, nonThreadedMatMult, newdata);
 
     }
