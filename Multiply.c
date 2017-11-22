@@ -9,7 +9,7 @@
 #include <sys/time.h>
 #include "Multiply.h"
 double **A,**B,**C;
-int A_r = 5,A_c=5,B_r=5,B_c=5,C_r,C_c;
+int A_r = 1000,A_c=1000,B_r=1000,B_c=1000,C_r,C_c;
 const int limit = 50;
 int main(){
 
@@ -23,21 +23,25 @@ int main(){
     A = initMatrix(A_r, A_c);
     B = initMatrix(B_r, B_c);
     C = initMatrix(C_r, C_c);
-    ReadFromFile(Afile,A,&A_r,&A_c);
-    ReadFromFile(Bfile,B,&B_r,&B_c);
+   // ReadFromFile(Afile,A,&A_r,&A_c);
+//    ReadFromFile(Bfile,B,&B_r,&B_c);
 
-    //initRandomMat(A, A_r, A_c, limit);
-   // initRandomMat(B, B_r, B_c, limit);
-    printMat(A, A_r, A_c, "A");
-    printMat(B, B_r, B_c, "B");
+    initRandomMat(A, A_r, A_c, limit);
+    initRandomMat(B, B_r, B_c, limit);
+//    printMat(A, A_r, A_c, "A");
+//    printMat(B, B_r, B_c, "B");
     MatMultParams_t *params = (MatMultParams_t *) malloc(sizeof(MatMultParams_t));
+    MatMultParams_t *params_nt = (MatMultParams_t *) malloc(sizeof(MatMultParams_t));
     initMatMultParams(params,A,B,C,A_r,A_c,B_r,B_c);
-    printf("non-threaded = %lf\n",benchmark(nonThreadedMatMult,params));
-    WriteFromFile(CfileNonThreaded,C,C_r,C_c);
-    printf("threaded by element= %lf\n",benchmark(ThreadedMatMultPerElement,params));
-    WriteFromFile(CfilePerElement,C,C_r,C_c);
+    initMatMultParams(params_nt,A,B,C,A_r,A_c,B_r,B_c);
+
+    printf("non-threaded = %lf\n",benchmark(nonThreadedMatMult,params_nt));
+ //   WriteFromFile(CfileNonThreaded,C,C_r,C_c);
     printf("threaded by row = %lf\n",benchmark(ThreadMatMultPerRow,params));
-    WriteFromFile(CfilePerRow,C,C_r,C_c);
+ //   WriteFromFile(CfilePerRow,C,C_r,C_c);
+   printf("threaded by element= %lf\n",benchmark(ThreadedMatMultPerElement,params));
+ //   WriteFromFile(CfilePerElement,C,C_r,C_c);
+
 
 
 }
@@ -93,6 +97,7 @@ void *dot(void *params) {
         result += data->b[i] * data->a[i];
     }
     *data->result = result;
+//    free(data);
     return 0;
 }
 
@@ -149,6 +154,8 @@ void *nonThreadedMatMult(void *param) { /*A * B */
 
         }
     }
+//  free(dotParams);
+   free(param);
     return 0;
 
 }
@@ -174,6 +181,9 @@ void *ThreadMatMultPerRow(void *param) {
         pthread_join(threads[i], NULL);
 
     }
+
+    free(newdata1);
+    free(threads);
     return 0;
 }
 
@@ -181,7 +191,7 @@ void *ThreadedMatMultPerElement(void *params) {
 
     MatMultParams_t *data = (MatMultParams_t *) params;
     if (data->A_c != data->B_r) {
-        fprintf(stderr, "incompatible matrix sizes\n");
+        fprintf(stderr, "incompatible matrix sizes  %d   %d\n   ",data->A_c,data->B_r);
         exit(0);
     }
     int C_r = data->A_r, C_c = data->B_c;
@@ -201,6 +211,7 @@ void *ThreadedMatMultPerElement(void *params) {
     for (int i = 0; i < C_r * C_c; ++i) {
         pthread_join(threads[i], NULL);
     }
+    free(threads);
     return 0;
 }
 
