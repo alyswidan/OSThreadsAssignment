@@ -8,46 +8,71 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include <ctype.h>
-#include <math.h>
 #include "Multiply.h"
 #define floatIsInt(f) (f-(int)f == 0)
+#define randomMatrixMode 0
+#define fileMatrixMode 1
+#define currentMatrixMode fileMatrixMode
+#define isVerbose 0  //print extra info during execution
+#define N 10
+const int maxMatElement = 50;
 double **A,**B,**C;
-int A_r = 1000,A_c=1000,B_r=1000,B_c=1000,C_r,C_c;
-const int limit = 50;
+int A_r = N,A_c=N,B_r=N,B_c=N,C_r,C_c;
+
 int main(){
-    FILE *fp;
+
+    /*names of files we are using*/
     char *Afile="./A-Matrix";
     char *Bfile="./B-Matrix";
     char *CfileNonThreaded="./C-Matrix";
     char *CfilePerElement="./C-MatrixPerElement";
     char *CfilePerRow="./C-MatrixPerRow";
+    /*end names of files*/
+
+    if(currentMatrixMode == fileMatrixMode){
+        calculateDimensions(Afile,&A_r,&A_c);
+        calculateDimensions(Bfile,&B_r,&B_c);
+        if(isVerbose)
+            printf("size A(%d,%d), size B(%d,%d)\n",A_r,A_c,B_r,B_c);
+    }
+
+    /*dimensions of the output matrix*/
     C_r = A_r, C_c = B_c;
 
-    calculateDimensions(Afile,&A_r,&A_c);
-    printf("cols = %d\n",A_c);
-   /* A = initMatrix(A_r, A_c);
-    B = initMatrix(B_r, B_c);
-    C = initMatrix(C_r, C_c);*/
-   // ReadFromFile(Afile,A,&A_r,&A_c);
-//    ReadFromFile(Bfile,B,&B_r,&B_c);
 
-/*    initRandomMat(A, A_r, A_c, limit);
-    initRandomMat(B, B_r, B_c, limit);*/
-//    printMat(A, A_r, A_c, "A");
-//    printMat(B, B_r, B_c, "B");
-/*    MatMultParams_t *params = (MatMultParams_t *) malloc(sizeof(MatMultParams_t));
+
+    A = initMatrix(A_r, A_c);
+    B = initMatrix(B_r, B_c);
+    C = initMatrix(C_r, C_c);
+
+
+    if(currentMatrixMode == randomMatrixMode){
+        initRandomMat(A, A_r, A_c, maxMatElement);
+        initRandomMat(B, B_r, B_c, maxMatElement);
+    }
+    else{
+        ReadFromFile(Afile,A,A_r,A_c);
+        ReadFromFile(Bfile,B,B_r,B_c);
+    }
+    if(isVerbose){
+        printMat(A, A_r, A_c, "A");
+        printMat(B, B_r, B_c, "B");
+    }
+
+    MatMultParams_t *params = (MatMultParams_t *) malloc(sizeof(MatMultParams_t));
     MatMultParams_t *params_nt = (MatMultParams_t *) malloc(sizeof(MatMultParams_t));
     initMatMultParams(params,A,B,C,A_r,A_c,B_r,B_c);
-    initMatMultParams(params_nt,A,B,C,A_r,A_c,B_r,B_c);*/
+    initMatMultParams(params_nt,A,B,C,A_r,A_c,B_r,B_c);
 
-//    printf("non-threaded = %lf\n",benchmark(nonThreadedMatMult,params_nt));
- //   WriteFromFile(CfileNonThreaded,C,C_r,C_c);
-//    printf("threaded by row = %lf\n",benchmark(ThreadMatMultPerRow,params));
- //   WriteFromFile(CfilePerRow,C,C_r,C_c);
-//   printf("threaded by element= %lf\n",benchmark(ThreadedMatMultPerElement,params));
- //   WriteFromFile(CfilePerElement,C,C_r,C_c);
-
-
+    printf("non-threaded = %lf\n",benchmark(nonThreadedMatMult,params_nt));
+    if(currentMatrixMode == fileMatrixMode)
+        WriteFromFile(CfileNonThreaded,C,C_r,C_c);
+    printf("threaded by row = %lf\n",benchmark(ThreadMatMultPerRow,params));
+    if(currentMatrixMode == fileMatrixMode)
+        WriteFromFile(CfilePerRow,C,C_r,C_c);
+    printf("threaded by element= %lf\n",benchmark(ThreadedMatMultPerElement,params));
+    if(currentMatrixMode == fileMatrixMode)
+        WriteFromFile(CfilePerElement,C,C_r,C_c);
 
 }
 
@@ -76,7 +101,6 @@ void calculateDimensions(char *fileName,int *rows,int *cols){
     //count the rest of the elements
     double current_element;
     while(fscanf(filePtr,"%lf",&current_element)!=EOF){
-        printf("%lf\n",current_element);
         element_cnt++;
     }
     //if dividing number of elements by cols isn't a whole number of the rows has less columns
@@ -87,27 +111,24 @@ void calculateDimensions(char *fileName,int *rows,int *cols){
     *rows = element_cnt / *cols;
 
 }
-void ReadFromFile(char* s,double** matrix,int* n, int* m){
+void ReadFromFile(char* s,double** matrix,int n, int m){
     FILE *fp;
     fp = fopen(s, "r");
-    fscanf(fp, "%d %d", n ,m);
 
-
-    for(int i=0;i< *n;i++){
-        for(int j=0 ;j<*m;j++){
+    for(int i=0;i< n;i++){
+        for(int j=0 ;j<m;j++){
 
             fscanf(fp, "%lf ",&matrix[i][j]);
 
         }
     }
+    fclose(fp);
 
 }
 void WriteFromFile(char* s,double** matrix,int n, int m){
 
     FILE *fp;
     fp = fopen(s, "w+");
-    fscanf(fp, "%d %d", n ,m);
-
     fprintf(fp, " ");
     for(int i=0;i< n;i++){
         for(int j=0 ;j<m;j++){

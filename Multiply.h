@@ -32,3 +32,5 @@ double **transpose(double**, int,int);
 void initRandomMat(double**,int,int,int);
 void printMat(double**,int,int,char*);
 void  printVector(double*,int);
+void ReadFromFile(char* s,double** matrix,int n, int m);
+void WriteFromFile(char* s,double** matrix,int n, int m);
