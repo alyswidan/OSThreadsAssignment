@@ -18,6 +18,7 @@ typedef struct DotParams{
 }DotParams_t;
 
 typedef void *matmult(void*);
+void calculateDimensions(char *fileName,int *rows,int *cols);
 void initDotParams(DotParams_t*,double* a,double* b,int sz_a,int sz_b,double *result);
 void initMatMultParams(MatMultParams_t*,double** A, double** B, double** C, int A_r,int A_c,int B_r,int B_c);
 double benchmark(matmult,void*);

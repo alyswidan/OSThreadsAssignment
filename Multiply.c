@@ -7,12 +7,14 @@
 #include <time.h>
 #include <pthread.h>
 #include <sys/time.h>
+#include <ctype.h>
+#include <math.h>
 #include "Multiply.h"
+#define floatIsInt(f) (f-(int)f == 0)
 double **A,**B,**C;
 int A_r = 1000,A_c=1000,B_r=1000,B_c=1000,C_r,C_c;
 const int limit = 50;
 int main(){
-
     FILE *fp;
     char *Afile="./A-Matrix";
     char *Bfile="./B-Matrix";
@@ -20,26 +22,29 @@ int main(){
     char *CfilePerElement="./C-MatrixPerElement";
     char *CfilePerRow="./C-MatrixPerRow";
     C_r = A_r, C_c = B_c;
-    A = initMatrix(A_r, A_c);
+
+    calculateDimensions(Afile,&A_r,&A_c);
+    printf("cols = %d\n",A_c);
+   /* A = initMatrix(A_r, A_c);
     B = initMatrix(B_r, B_c);
-    C = initMatrix(C_r, C_c);
+    C = initMatrix(C_r, C_c);*/
    // ReadFromFile(Afile,A,&A_r,&A_c);
 //    ReadFromFile(Bfile,B,&B_r,&B_c);
 
-    initRandomMat(A, A_r, A_c, limit);
-    initRandomMat(B, B_r, B_c, limit);
+/*    initRandomMat(A, A_r, A_c, limit);
+    initRandomMat(B, B_r, B_c, limit);*/
 //    printMat(A, A_r, A_c, "A");
 //    printMat(B, B_r, B_c, "B");
-    MatMultParams_t *params = (MatMultParams_t *) malloc(sizeof(MatMultParams_t));
+/*    MatMultParams_t *params = (MatMultParams_t *) malloc(sizeof(MatMultParams_t));
     MatMultParams_t *params_nt = (MatMultParams_t *) malloc(sizeof(MatMultParams_t));
     initMatMultParams(params,A,B,C,A_r,A_c,B_r,B_c);
-    initMatMultParams(params_nt,A,B,C,A_r,A_c,B_r,B_c);
+    initMatMultParams(params_nt,A,B,C,A_r,A_c,B_r,B_c);*/
 
-    printf("non-threaded = %lf\n",benchmark(nonThreadedMatMult,params_nt));
+//    printf("non-threaded = %lf\n",benchmark(nonThreadedMatMult,params_nt));
  //   WriteFromFile(CfileNonThreaded,C,C_r,C_c);
-    printf("threaded by row = %lf\n",benchmark(ThreadMatMultPerRow,params));
+//    printf("threaded by row = %lf\n",benchmark(ThreadMatMultPerRow,params));
  //   WriteFromFile(CfilePerRow,C,C_r,C_c);
-   printf("threaded by element= %lf\n",benchmark(ThreadedMatMultPerElement,params));
+//   printf("threaded by element= %lf\n",benchmark(ThreadedMatMultPerElement,params));
  //   WriteFromFile(CfilePerElement,C,C_r,C_c);
 
 
@@ -52,6 +57,35 @@ double **initMatrix(int r, int c) {
         X[i] = (double*)malloc(c * sizeof(double));
     }
     return X;
+}
+
+void calculateDimensions(char *fileName,int *rows,int *cols){
+    FILE *filePtr = fopen(fileName,"r");
+    *cols = 0;
+    int current,prev='a',element_cnt=0;
+    //count the number of spaces in the first line
+    //ignore a space if the previous character was a space
+    while((current=getc(filePtr)) != '\n') {
+        if(isspace(current) && !isspace(prev))
+            (*cols)++;
+        prev = current;
+    }
+    (*cols)++;
+    element_cnt = *cols; // add one to the number of spaces
+
+    //count the rest of the elements
+    double current_element;
+    while(fscanf(filePtr,"%lf",&current_element)!=EOF){
+        printf("%lf\n",current_element);
+        element_cnt++;
+    }
+    //if dividing number of elements by cols isn't a whole number of the rows has less columns
+    if(!floatIsInt(1.0*element_cnt / *cols)){
+        fprintf(stderr,"number of elements per row aren't equal\n");
+        abort();
+    }
+    *rows = element_cnt / *cols;
+
 }
 void ReadFromFile(char* s,double** matrix,int* n, int* m){
     FILE *fp;
