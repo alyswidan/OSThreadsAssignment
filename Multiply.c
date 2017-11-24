@@ -61,8 +61,9 @@ int main(){
 
     MatMultParams_t *params = (MatMultParams_t *) malloc(sizeof(MatMultParams_t));
     MatMultParams_t *params_nt = (MatMultParams_t *) malloc(sizeof(MatMultParams_t));
+    double **B_T = transpose(B, B_r,B_c);
     initMatMultParams(params,A,B,C,A_r,A_c,B_r,B_c);
-    initMatMultParams(params_nt,A,B,C,A_r,A_c,B_r,B_c);
+    initMatMultParams(params_nt,A,B_T,C,A_r,A_c,B_c,B_r);
 
     printf("non-threaded = %lf\n",benchmark(nonThreadedMatMult,params_nt));
     if(currentMatrixMode == fileMatrixMode)
@@ -196,8 +197,9 @@ void printVector(double *a, int size) {
 void *nonThreadedMatMult(void *param) { /*A * B */
 
     MatMultParams_t *data = (MatMultParams_t *) param;
-    if (data->A_c != data->B_r) {
+    if (data->A_c != data->B_c) {
         fprintf(stderr, "incompatible matrix sizes\n");
+        printf("\nAC%d   BR%d\n",data->A_c,data->B_c);
         exit(0);
     }
     DotParams_t *dotParams = (DotParams_t *) malloc(sizeof(DotParams_t));
@@ -222,7 +224,8 @@ void *ThreadMatMultPerRow(void *param) {
     MatMultParams_t *newdata1 = (MatMultParams_t *) malloc(sizeof(MatMultParams_t));
     memcpy(newdata1, data, sizeof(MatMultParams_t));
     double **B_T = transpose(data->B, data->B_r, data->B_c);
-    int B_T_r = B_c,B_T_c = B_r;
+    int B_T_r = data->B_c,B_T_c = data->B_r;
+    printf("btr  btc %d %d", B_T_r,B_T_c);
     for (int i = 0; i < data->A_r; i++) {
         double **newA = initMatrix(1, data->A_c);
         double **newC = initMatrix(1, B_T_r);
